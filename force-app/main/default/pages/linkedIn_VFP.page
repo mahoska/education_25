@@ -1,0 +1,21 @@
+<!--
+  @description       : test page connect to LinkedIn
+  @author            : Hanna Makhovska
+  @group             : 
+  @last modified on  : 01-02-2025
+  @last modified by  : Hanna Makhovska
+-->
+<apex:page controller="LinkedInManager">
+  <apex:form>
+    <apex:pageMessages></apex:pageMessages>
+    <apex:pageBlock>
+      <apex:pageBlockButtons location="top">
+        <apex:commandButton value="Connect LinkedIn" action="{!getAuthCode}" rendered="{!isCode}" />
+      </apex:pageBlockButtons>
+      <apex:pageBlockButtons location="top">
+        <apex:commandButton value="Complete Authorization LinkedIn" action="{!getAccessToken}" rendered="{!!isCode}" />
+      </apex:pageBlockButtons>
+    </apex:pageBlock>
+  </apex:form>
+  <!-- End Default Content REMOVE THIS -->
+</apex:page>
