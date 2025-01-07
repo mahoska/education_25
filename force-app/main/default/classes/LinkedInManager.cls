@@ -2,7 +2,7 @@
  * @description       : test connect LincedIn; controller linkedIn_VFP page
  * @author            : Hanna Makhovska
  * @group             : 
- * @last modified on  : 01-03-2025
+ * @last modified on  : 01-07-2025
  * @last modified by  : Hanna Makhovska
 **/
 public class LinkedInManager {
@@ -10,6 +10,7 @@ public class LinkedInManager {
   public string authCodeFromURL{get;set;}
   public Boolean isCode{get;set;}
   public List<LinkedIn_Data__c> linkedInList{get;set;}
+  public string BasicInfo{get;set;}
 
   public Final string costumerKey='77t4td0a3k5xh4';//client_id
   public Final string customerSecret='WPL_AP1.3QMsoh8yqFiumDz0.5dfUWg==';//client_secret
@@ -40,7 +41,7 @@ scope=liteprofile%20emailaddress%20w_member_social*/
     /*
     string requesttoAuthURL = linkedIn_AuthUrl+'response_type=code&client_id='+costumerKey+'&redirect_uri='+redirect_URI+'&state=1234567dggd&scope=r_liteprofile%20r_emailaddress%20w_member_social';
     */
-    string requesttoAuthURL = linkedIn_AuthUrl+'response_type=code&client_id='+costumerKey+'&redirect_uri='+redirect_URI+'&state=1234567dggd&scope=openid%20profile';
+    string requesttoAuthURL = linkedIn_AuthUrl+'response_type=code&client_id='+costumerKey+'&redirect_uri='+redirect_URI+'&state=1234567dggd&scope=openid%20profile%20w_member_social';
 
     System.debug('requesttoAuthURL: '+requesttoAuthURL);
      PageReference pageRef = new PageReference(requesttoAuthURL);
@@ -88,6 +89,83 @@ scope=liteprofile%20emailaddress%20w_member_social*/
     }catch(System.Exception e){
       System.debug('exception occured => '+e.getStackTraceString()+'  ; '+e.getMessage());
     }
+  }
+
+  public void fetchBasicInfo(){
+    Http http = new Http();
+    HttpRequest request = new HttpRequest();
+    HttpResponse response = new HttpResponse();
+    
+    List<LinkedIn_Data__c> linkedInInfoList = [SELECT Id, Name, Access_Token__c,Expires_In_Seconds__c FROM LinkedIn_Data__c WHERE Name='LinkedlnInfo'];
+
+    request.setMethod('GET');
+    request.setEndpoint('https://api.linkedin.com/v2/userinfo');
+    request.setHeader('Authorization', 'Bearer '+linkedInInfoList[0].Access_Token__c);
+    System.debug('Bearer '+linkedInInfoList[0].Access_Token__c);
+    request.setHeader('Content-Type', 'application/json');
+    string errorMessage = '';
+
+    try{
+      response = http.send(request);
+      //System.debug(String.valueOf(response.getStatusCode()));
+      if(response.getStatusCode()==200){
+        Map<string, Object> TokenInfoMap = (Map<string, Object>)JSON.deserializeUntyped(response.getBody());
+        System.debug('Token Info => '+TokenInfoMap);
+        string firstName = String.valueOf(TokenInfoMap.get('family_name'));
+        string lastName = String.valueOf(TokenInfoMap.get('given_name'));
+        string profilePictureUrl = String.valueOf(TokenInfoMap.get('picture'));
+        string personalId = String.valueOf(TokenInfoMap.get('sub'));
+        BasicInfo = personalId + ': '+ firstName + ' ' + lastName + ' ; '+ profilePictureUrl;
+        //basicInfo += '<br/>'+profilePictureUrl;
+      }
+    }catch(System.Exception e){
+      System.debug('Exception occured while fetching basic info => '+e.getStackTraceString()+'  ; '+e.getMessage());
+      if(String.valueOf(e.getMessage()).startsWith('Unauthorized endpoint')){
+        errorMessage = 'Unauthorized endpoint: Administrator must go to Setup-->[Administer-->Security Control]-->Remote site Settings and add Endpoint: https://api.linkedin.com/ ';
+          ApexPages.addMessage(new ApexPages.message(ApexPages.Severity.ERROR,errorMessage));
+      }
+    }
+  }
+
+  public void sharePost(){
+    Http http = new Http();
+    HttpRequest request = new HttpRequest();
+    HttpResponse response = new HttpResponse();
+    
+    List<LinkedIn_Data__c> linkedInInfoListNew = [SELECT Id, Name, Access_Token__c,Expires_In_Seconds__c FROM LinkedIn_Data__c WHERE Name='LinkedlnInfo'];
+
+    request.setMethod('POST');
+    request.setEndpoint('https://api.linkedin.com/v2/ugcPosts');
+    request.setHeader('Authorization', 'Bearer '+linkedInInfoListNew[0].Access_Token__c);
+    request.setHeader('Content-Type', 'application/json');
+    request.setHeader('x-li-format', 'json');
+    request.setHeader('X-Restli-Protocol-Version', '2.0.0');
+
+    string requestBody = '{'+
+                          '"author": "urn:li:person:o011hlm6DH",'+
+                          '"lifecycleState": "PUBLISHED",'+
+                          '"specificContent": {'+
+                          '"com.linkedin.ugc.ShareContent": {'+
+                          '"shareCommentary": {'+
+                          '"text": "Hello World! This is my first Share on LinkedIn!"'+
+                          '},'+
+                          '"shareMediaCategory": "NONE"'+
+                        '}'+
+                        '},'+
+                        '"visibility": {'+
+                            '"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"'+
+                        '}'+
+                        '}';
+      request.setBody(requestBody);
+      try{
+        response = http.send(request);
+      System.debug(String.valueOf(response.getStatusCode()));
+        if(response.getStatusCode() == 200 || response.getStatusCode() == 201){
+          ApexPages.addMessage(new ApexPages.message(ApexPages.Severity.CONFIRM,'Post has been shared successfully!!!'));
+        }
+      }catch(System.Exception e){
+        System.debug('exception occured => '+e.getStackTraceString()+'  ; '+e.getMessage());
+      }
   }
 
   /*public string authCodeFromURL{get;set;}

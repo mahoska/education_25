@@ -2,7 +2,7 @@
   @description       : test page connect to LinkedIn
   @author            : Hanna Makhovska
   @group             : 
-  @last modified on  : 01-02-2025
+  @last modified on  : 01-07-2025
   @last modified by  : Hanna Makhovska
 -->
 <apex:page controller="LinkedInManager">
@@ -15,6 +15,19 @@
       <apex:pageBlockButtons location="top">
         <apex:commandButton value="Complete Authorization LinkedIn" action="{!getAccessToken}" rendered="{!!isCode}" />
       </apex:pageBlockButtons>
+    </apex:pageBlock>
+
+
+    <apex:pageBlock>
+      <apex:pageBlockButtons location="top">
+        <apex:commandButton value="Get Basic Info" action="{!fetchBasicInfo}" rerender="thePanel" />
+        <apex:commandButton value="Share Post on LinkedIn" action="{!sharePost}" rerender="thePanel" />
+      </apex:pageBlockButtons>
+
+      <apex:outputPanel id="thePanel">
+        {!BasicInfo}
+        <br/>
+      </apex:outputPanel>
     </apex:pageBlock>
   </apex:form>
   <!-- End Default Content REMOVE THIS -->
